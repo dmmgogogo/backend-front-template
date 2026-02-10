@@ -43,56 +43,42 @@ if ! command -v git &> /dev/null; then
     error "未安装 Git"
 fi
 
-# ========== 选择创建方式 ==========
+# ========== 选择克隆源 ==========
 echo ""
 echo "========================================"
 echo "  Vben Admin 管理后台初始化"
 echo "========================================"
 echo ""
-echo "  请选择创建方式："
-echo "  1) 使用官方 CLI 创建（推荐，最新版本）"
-echo "  2) 从 GitHub 克隆模板"
+echo "  请选择克隆源："
+echo "  1) GitHub（推荐，最新代码）"
+echo "  2) Gitee 镜像（国内加速，可能不是最新）"
 echo ""
-read -p "请选择 (1/2): " -n 1 -r CREATE_METHOD
+read -p "请选择 (1/2): " -n 1 -r CLONE_SOURCE
 echo ""
 
-# ========== 创建项目 ==========
+case $CLONE_SOURCE in
+    2)  REPO_URL="https://gitee.com/annsion/vue-vben-admin.git" ;;
+    *)  REPO_URL="https://github.com/vbenjs/vue-vben-admin.git" ;;
+esac
+
+# ========== 克隆项目到临时目录 ==========
 TEMP_DIR=$(mktemp -d)
 
-case $CREATE_METHOD in
-    1)
-        info "使用官方 CLI 创建（在临时目录中）..."
-        cd "$TEMP_DIR"
-        pnpm create vben@latest vben-project || error "CLI 创建失败"
+info "正在克隆 $REPO_URL ..."
+git clone --depth 1 "$REPO_URL" "$TEMP_DIR/vben" || {
+    rm -rf "$TEMP_DIR"
+    error "克隆失败，请检查网络连接"
+}
 
-        # 将生成的文件合并到目标目录（不覆盖 CLAUDE.md 和 init.sh）
-        info "合并文件到目标目录..."
-        cd "$TEMP_DIR/vben-project"
-        for item in * .[!.]*; do
-            [ ! -e "$item" ] && continue
-            [ "$item" = "CLAUDE.md" ] || [ "$item" = "init.sh" ] && continue
-            cp -r "$item" "$SCRIPT_DIR/"
-        done
-        ;;
-    2)
-        info "从 GitHub 克隆模板..."
-        git clone --depth 1 https://github.com/vben/vue-vben-admin.git "$TEMP_DIR/vben" || error "克隆失败"
-
-        # 将克隆的文件合并到目标目录（不覆盖 CLAUDE.md 和 init.sh）
-        info "合并文件到目标目录..."
-        rm -rf "$TEMP_DIR/vben/.git"
-        cd "$TEMP_DIR/vben"
-        for item in * .[!.]*; do
-            [ ! -e "$item" ] && continue
-            [ "$item" = "CLAUDE.md" ] || [ "$item" = "init.sh" ] && continue
-            cp -r "$item" "$SCRIPT_DIR/"
-        done
-        ;;
-    *)
-        rm -rf "$TEMP_DIR"
-        error "无效选择"
-        ;;
-esac
+# 将文件合并到目标目录（保留 CLAUDE.md 和 init.sh）
+info "合并文件到目标目录..."
+rm -rf "$TEMP_DIR/vben/.git"
+cd "$TEMP_DIR/vben"
+for item in * .[!.]*; do
+    [ ! -e "$item" ] && continue
+    [ "$item" = "CLAUDE.md" ] || [ "$item" = "init.sh" ] && continue
+    cp -r "$item" "$SCRIPT_DIR/"
+done
 
 # 清理临时目录
 rm -rf "$TEMP_DIR"
