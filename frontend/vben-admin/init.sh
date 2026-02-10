@@ -56,75 +56,48 @@ echo ""
 read -p "请选择 (1/2): " -n 1 -r CREATE_METHOD
 echo ""
 
-# ========== 备份已有文件 ==========
-CLAUDE_MD="$SCRIPT_DIR/CLAUDE.md"
-INIT_SH="$SCRIPT_DIR/init.sh"
-HAS_CLAUDE_MD=false
-HAS_INIT_SH=false
-
-if [ -f "$CLAUDE_MD" ]; then
-    HAS_CLAUDE_MD=true
-    cp "$CLAUDE_MD" "/tmp/_vben_CLAUDE.md.bak"
-fi
-if [ -f "$INIT_SH" ]; then
-    HAS_INIT_SH=true
-    cp "$INIT_SH" "/tmp/_vben_init.sh.bak"
-fi
-
 # ========== 创建项目 ==========
+TEMP_DIR=$(mktemp -d)
+
 case $CREATE_METHOD in
     1)
-        info "使用官方 CLI 创建..."
-        cd "$(dirname "$SCRIPT_DIR")"
+        info "使用官方 CLI 创建（在临时目录中）..."
+        cd "$TEMP_DIR"
+        pnpm create vben@latest vben-project || error "CLI 创建失败"
 
-        # 如果目录非空（除了 CLAUDE.md 和 init.sh），先移到临时位置
-        TEMP_DIR=$(mktemp -d)
-        if [ -d "$SCRIPT_DIR" ]; then
-            # 只在脚本目录有其他文件时才移动
-            FILE_COUNT=$(find "$SCRIPT_DIR" -maxdepth 1 -not -name "CLAUDE.md" -not -name "init.sh" -not -name "." | wc -l | tr -d ' ')
-            if [ "$FILE_COUNT" -gt 0 ]; then
-                warn "目标目录非空，将先清理..."
-            fi
-        fi
-
-        # 删除目标目录（CLI 会重新创建）
-        PARENT_DIR="$(dirname "$SCRIPT_DIR")"
-        DIR_NAME="$(basename "$SCRIPT_DIR")"
-        rm -rf "$SCRIPT_DIR"
-
-        cd "$PARENT_DIR"
-        pnpm create vben@latest "$DIR_NAME" || error "CLI 创建失败"
+        # 将生成的文件合并到目标目录（不覆盖 CLAUDE.md 和 init.sh）
+        info "合并文件到目标目录..."
+        cd "$TEMP_DIR/vben-project"
+        for item in * .[!.]*; do
+            [ ! -e "$item" ] && continue
+            [ "$item" = "CLAUDE.md" ] || [ "$item" = "init.sh" ] && continue
+            cp -r "$item" "$SCRIPT_DIR/"
+        done
         ;;
     2)
         info "从 GitHub 克隆模板..."
-        TEMP_DIR=$(mktemp -d)
         git clone --depth 1 https://github.com/vben/vue-vben-admin.git "$TEMP_DIR/vben" || error "克隆失败"
 
-        # 移动文件到目标目录
+        # 将克隆的文件合并到目标目录（不覆盖 CLAUDE.md 和 init.sh）
+        info "合并文件到目标目录..."
         rm -rf "$TEMP_DIR/vben/.git"
-        cp -r "$TEMP_DIR/vben/"* "$SCRIPT_DIR/" 2>/dev/null || true
-        cp -r "$TEMP_DIR/vben/".[!.]* "$SCRIPT_DIR/" 2>/dev/null || true
-        rm -rf "$TEMP_DIR"
+        cd "$TEMP_DIR/vben"
+        for item in * .[!.]*; do
+            [ ! -e "$item" ] && continue
+            [ "$item" = "CLAUDE.md" ] || [ "$item" = "init.sh" ] && continue
+            cp -r "$item" "$SCRIPT_DIR/"
+        done
         ;;
     *)
+        rm -rf "$TEMP_DIR"
         error "无效选择"
         ;;
 esac
 
+# 清理临时目录
+rm -rf "$TEMP_DIR"
+
 cd "$SCRIPT_DIR"
-
-# ========== 恢复备份文件 ==========
-if [ "$HAS_CLAUDE_MD" = true ]; then
-    cp "/tmp/_vben_CLAUDE.md.bak" "$SCRIPT_DIR/CLAUDE.md"
-    rm "/tmp/_vben_CLAUDE.md.bak"
-    success "已恢复 CLAUDE.md"
-fi
-if [ "$HAS_INIT_SH" = true ]; then
-    cp "/tmp/_vben_init.sh.bak" "$SCRIPT_DIR/init.sh"
-    rm "/tmp/_vben_init.sh.bak"
-    success "已恢复 init.sh"
-fi
-
 success "项目创建完成"
 
 # ========== 查找主应用目录 ==========
