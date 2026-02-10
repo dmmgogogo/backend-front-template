@@ -50,7 +50,7 @@ func (u *User) TableName() string {
 // EncryptPassword 加密密码
 func EncryptPassword(password string) string {
 	h := md5.New()
-	h.Write([]byte(password + "e-woms_salt_2025"))
+	h.Write([]byte(password + "super_admin_salt_2026"))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
