@@ -1,0 +1,40 @@
+# ========== 通用 ==========
+.DS_Store
+*.log
+*.swp
+*.swo
+.env
+.env.local
+
+# ========== Go 后端 ==========
+backend/conf/app.conf
+backend/logs/
+backend/tmp/
+backend/vendor/
+
+# ========== Flutter ==========
+frontend/flutter/.dart_tool/
+frontend/flutter/.packages
+frontend/flutter/build/
+frontend/flutter/.flutter-plugins
+frontend/flutter/.flutter-plugins-dependencies
+frontend/flutter/ios/Pods/
+frontend/flutter/ios/.symlinks/
+frontend/flutter/android/.gradle/
+frontend/flutter/android/local.properties
+frontend/flutter/android/app/build/
+frontend/flutter/.pub-cache/
+frontend/flutter/.pub/
+
+# ========== Vben Admin ==========
+frontend/vben-admin/node_modules/
+frontend/vben-admin/dist/
+frontend/vben-admin/.turbo/
+frontend/vben-admin/.cache/
+frontend/vben-admin/apps/*/node_modules/
+frontend/vben-admin/packages/*/node_modules/
+
+# ========== IDE ==========
+.idea/
+.vscode/
+*.iml
