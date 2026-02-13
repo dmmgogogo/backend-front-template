@@ -1,42 +1,27 @@
 package models
 
 import (
-	"fmt"
 	"time"
 
 	"std-library-slim/redis"
+	"yzyw/utils"
 
 	"github.com/beego/beego/v2/core/logs"
-	"github.com/beego/beego/v2/server/web"
-	"github.com/dgrijalva/jwt-go"
 )
 
 const TOKEN_BLACKLIST_PREFIX = "token_blacklist:"
 
 // AddTokenToBlacklist 将token加入黑名单
 func AddTokenToBlacklist(tokenString string) error {
-	// 解析token获取过期时间
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return []byte(web.AppConfig.DefaultString("JWT_SECRET", "")), nil
-	})
+	claims, err := utils.ParseToken(tokenString)
 	if err != nil {
 		return err
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return fmt.Errorf("invalid token claims")
+	if claims.ExpiresAt == nil {
+		return nil // 无过期时间，不加入黑名单
 	}
-
-	// 获取token的过期时间
-	exp, ok := claims["exp"].(float64)
-	if !ok {
-		return fmt.Errorf("invalid token expiration")
-	}
-
-	// 计算剩余有效期
-	expTime := time.Unix(int64(exp), 0)
-	ttl := time.Until(expTime)
+	ttl := time.Until(claims.ExpiresAt.Time)
 	if ttl <= 0 {
 		return nil // token已过期，无需加入黑名单
 	}
