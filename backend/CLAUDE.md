@@ -206,6 +206,26 @@ cp conf/app.example.conf conf/app.conf
 
 ---
 
+## iOS 支付（内购验单）
+
+本模板已内置 **iOS App Store 内购验单** 能力，用于赞助/打赏等场景：
+
+- **接口**: `POST /api/backend/support/ios/verify`（需登录，Header 带 `Authorization: Bearer <token>`）
+- **请求体**: `product_id`、`transaction_id`、`receipt_data`（App Store 收据 base64）
+- **流程**: 校验参数 → 向 Apple 验单（生产 + 沙盒 21007 回退）→ 按 `transaction_id` 幂等写入 `app_support_orders` → 更新用户 `support_total_amount`、`support_level`、`vip`
+
+**相关文件**（便于 AI 定位“iOS 支付代码”）：
+
+- `controllers/backend/support_ios.go` — 验单接口、`iosProductAmount` 商品映射、`verifyAppleReceipt` 调 Apple
+- `models/backend/support_order.go` — 订单表模型
+- `models/backend/support.go` — `AddSupportByTransaction`、`resolveSupportLevel`
+- `dto/backend/support.go` — 请求/响应 DTO
+- `docs/014_ios_support.sql` — 用户表字段 + `app_support_orders` 建表
+
+**配置**: `app.conf` 或 `app.example.conf` 中 `ios_iap_shared_secret`（App Store Connect 内购“App 专用共享密钥”）。商品 ID 与金额映射在 `support_ios.go` 的 `iosProductAmount` 中，按项目修改。
+
+---
+
 ## 相关 Skills
 
 详细技术文档参见根目录 `.claude/skills/`：

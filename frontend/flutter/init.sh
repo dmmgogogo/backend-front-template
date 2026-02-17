@@ -535,12 +535,24 @@ JSON_EOF
 
 success "基础文件创建完成"
 
+# ========== iOS 内购支付模板（可选）==========
+if [ -f "$SCRIPT_DIR/patches/ios_support_service.dart" ]; then
+  info "添加 iOS 内购支付模板代码..."
+  mkdir -p lib/features/support
+  cp "$SCRIPT_DIR/patches/ios_support_service.dart" lib/features/support/support_service.dart
+  success "已创建 lib/features/support/support_service.dart（后端需配置 POST /api/backend/support/ios/verify，见 backend CLAUDE.md）"
+fi
+
 # ========== 更新 pubspec.yaml ==========
 info "更新 pubspec.yaml 依赖..."
 
 # 使用 flutter pub add 添加依赖（自动获取最新版本）
 cd "$SCRIPT_DIR"
 flutter pub add dio provider go_router shared_preferences json_annotation logger 2>/dev/null || warn "部分依赖添加失败，请手动检查"
+# 若存在 iOS 支付模板，添加内购依赖
+if [ -f "$SCRIPT_DIR/patches/ios_support_service.dart" ]; then
+  flutter pub add in_app_purchase 2>/dev/null || warn "in_app_purchase 添加失败，请手动在 pubspec.yaml 添加 in_app_purchase"
+fi
 flutter pub add --dev json_serializable build_runner 2>/dev/null || warn "部分 dev 依赖添加失败，请手动检查"
 
 # 添加 assets 到 pubspec.yaml（如果还没有）

@@ -36,6 +36,8 @@ func InitRouters() {
 			web.NSRouter("/user/login", &backend.UserController{}, "post:Login"),
 			web.NSRouter("/user/logout", &backend.UserController{}, "post:Logout"),
 			web.NSRouter("/user/userinfo", &backend.UserController{}, "get:GetUserInfo"),
+			// iOS 内购验单（赞助/打赏）- 见 CLAUDE.md「iOS 支付」
+			web.NSRouter("/support/ios/verify", &backend.UserController{}, "post:VerifyIOSSupportPurchase"),
 		),
 
 		// 通用功能

@@ -22,9 +22,12 @@ type User struct {
 	Nickname      string `json:"nickname" orm:"column(nickname)"`               // 昵称
 	Avatar        string `json:"avatar" orm:"column(avatar)"`                   // 头像
 	Status        int    `json:"status" orm:"column(status);default(1)"`        // 状态 1:正常 0:禁用
-	LastLoginTime int64  `json:"last_login_time" orm:"column(last_login_time)"` // 最后登录时间
-	CreatedTime   int64  `json:"created_time" orm:"column(created_time);index"` // 创建时间
-	UpdatedTime   int64  `json:"updated_time" orm:"column(updated_time)"`       // 更新时间
+	LastLoginTime        int64   `json:"last_login_time" orm:"column(last_login_time)"`         // 最后登录时间
+	CreatedTime          int64   `json:"created_time" orm:"column(created_time);index"`         // 创建时间
+	UpdatedTime          int64   `json:"updated_time" orm:"column(updated_time)"`              // 更新时间
+	Vip                  int     `json:"vip" orm:"column(vip);default(0)"`                      // 是否 VIP（赞助后置 1）
+	SupportTotalAmount   float64 `json:"support_total_amount" orm:"column(support_total_amount);digits(12);decimals(2);default(0)"` // 累计赞助金额
+	SupportLevel         int     `json:"support_level" orm:"column(support_level);default(0)"`  // 赞助等级 0-5
 }
 
 func init() {

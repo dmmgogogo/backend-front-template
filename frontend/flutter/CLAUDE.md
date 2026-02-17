@@ -240,3 +240,19 @@ mkdir -p lib/features/order/{data,models,providers,pages}
 常量:     lowerCamelCase    (defaultTimeout)
 私有成员:  _camelCase        (_isLoading)
 ```
+
+---
+
+## iOS 支付（内购验单）
+
+本模板通过 **init.sh** 可选注入 **iOS App Store 内购** 代码，用于赞助/打赏等场景：
+
+- **位置**: 若存在 `patches/ios_support_service.dart`，init 会复制为 `lib/features/support/support_service.dart`，并添加 `in_app_purchase` 依赖。
+- **后端接口**: `POST /api/backend/support/ios/verify`（需登录），见 **backend CLAUDE.md** 的「iOS 支付」一节。
+- **用法**: `await SupportService().purchaseIOSSupport(amount: 10, onDebugEvent: (msg) => debugPrint(msg));`
+- **商品 ID**: `support_service.dart` 内 `_iosProductAmount` 需与后端 `controllers/backend/support_ios.go` 的 `iosProductAmount` 一致；路径为 `/support/ios/verify`，请求由 `HttpClient` 的 Auth 拦截器自动带 token。
+
+**相关文件**（便于 AI 定位“iOS 支付代码”）：
+
+- `patches/ios_support_service.dart` — 模板源码，init 时复制到 `lib/features/support/support_service.dart`
+- `lib/features/support/support_service.dart` — 运行时的 iOS 内购 + 验单逻辑（init 后存在）

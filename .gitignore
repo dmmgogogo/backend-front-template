@@ -11,6 +11,7 @@ backend/conf/app.conf
 backend/logs/
 backend/tmp/
 backend/vendor/
+backend/deploy_prod.sh
 
 # ========== Flutter ==========
 frontend/flutter/.dart_tool/
