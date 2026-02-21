@@ -256,3 +256,79 @@ mkdir -p lib/features/order/{data,models,providers,pages}
 
 - `patches/ios_support_service.dart` — 模板源码，init 时复制到 `lib/features/support/support_service.dart`
 - `lib/features/support/support_service.dart` — 运行时的 iOS 内购 + 验单逻辑（init 后存在）
+
+---
+
+## 交互性能约定（必须执行）
+
+对于可能超过 300ms 的操作，必须提供可见的 loading 反馈，并在操作期间禁用重复触发：
+
+1. 网络请求、P2P 建连、密钥初始化、会话创建/加入、消息发送
+2. 本地持久化但可能触发 I/O 等待的写入（例如设置保存）
+3. 任何用户点击后不能立即完成的流程
+
+实现要求：
+
+- 优先使用按钮内 loading（`CircularProgressIndicator`）+ `onPressed: null`
+- 页面级耗时流程可加 `LinearProgressIndicator` 或全屏遮罩
+- loading 状态由 Provider 或页面 State 显式管理，禁止“静默等待”
+- 保存成功后需要立即反映到 UI（通过状态管理触发重建），不能依赖用户手动返回刷新
+
+---
+
+## 日志管理规范（必须执行）
+
+目标：快速定位“卡顿/连不通/消息未达”问题，且日志可跨项目复用。
+
+### 统一入口
+
+- 必须使用 `lib/core/log/app_logger.dart`，禁止在业务代码直接 `print/debugPrint`
+- 每个模块创建独立 scope，例如：
+  - `AppLogger.scope('P2PService')`
+  - `AppLogger.scope('ChatProvider')`
+  - `AppLogger.scope('SessionListPage')`
+
+### 日志级别
+
+- `trace`：高频细节（如 provider found、stream bytes）
+- `debug`：关键流程步骤（如 join/sent/received）
+- `info`：状态变化（如 start success、connected peers 变化）
+- `warning`：可恢复异常（如 connect failed、send blocked）
+- `error`：不可恢复错误（崩溃前、数据损坏等）
+
+发布策略：
+
+- Debug/Profile：输出全部级别
+- Release：仅输出 `warning/error`
+
+### 事件命名
+
+- 使用 `domain.action.result` 风格，便于检索：
+  - `p2p.start.success`
+  - `channel.join.request`
+  - `peer.connect_failed`
+  - `message.send_complete`
+  - `session.connection_count_changed`
+
+### 上下文与脱敏
+
+- 日志必须带上下文 `ctx`，最少包含：`sessionId/channel/topic/peer/bodyLen` 中的相关字段
+- 严禁输出完整密钥、token、完整私聊内容
+- `secret` 只能输出脱敏值（前 6 + 后 4）
+- `peerId` 使用短串（前 8 + 后 4）
+
+### P2P 项目必打点位
+
+- 启动：`start.request/start.success/dht.ready`
+- 加入会话：`channel.join.request/channel.provided`
+- 发现与连接：`provider.found/peer.connected/peer.connect_failed`
+- 消息链路：`message.send_channel/message.send_complete/message.received`
+- 状态变化：`session.connection_count_changed`
+
+### 质量门禁
+
+- 新增“耗时/异步/网络/P2P”流程时，必须同步补齐上述日志点
+- PR 自检时必须确认：
+  1. 失败场景有 warning/error 日志
+  2. 成功场景有 info/debug 日志
+  3. 敏感字段已脱敏

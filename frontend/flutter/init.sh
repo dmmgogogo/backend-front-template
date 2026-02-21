@@ -85,6 +85,7 @@ mkdir -p lib/config
 # core/
 mkdir -p lib/core/network/interceptors
 mkdir -p lib/core/storage
+mkdir -p lib/core/log
 mkdir -p lib/core/utils
 mkdir -p lib/core/widgets
 # features/
@@ -193,6 +194,142 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 );
+DART_EOF
+
+# --- core/log/app_logger.dart ---
+cat > lib/core/log/app_logger.dart << 'DART_EOF'
+import 'package:flutter/foundation.dart';
+import 'package:logger/logger.dart';
+
+/// Unified logger entry for the whole app.
+///
+/// - debug/profile: output all levels
+/// - release: output warning and error only
+class AppLogger {
+  AppLogger._();
+
+  static final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 5,
+      lineLength: 120,
+      colors: false,
+      printEmojis: false,
+      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+    ),
+    level: kReleaseMode ? Level.warning : Level.trace,
+  );
+
+  static LogScope scope(String name) => LogScope._(name);
+
+  static void t(
+    String scope,
+    String event, {
+    Map<String, Object?> ctx = const {},
+  }) {
+    _logger.t(_format(scope, event, ctx));
+  }
+
+  static void d(
+    String scope,
+    String event, {
+    Map<String, Object?> ctx = const {},
+  }) {
+    _logger.d(_format(scope, event, ctx));
+  }
+
+  static void i(
+    String scope,
+    String event, {
+    Map<String, Object?> ctx = const {},
+  }) {
+    _logger.i(_format(scope, event, ctx));
+  }
+
+  static void w(
+    String scope,
+    String event, {
+    Object? error,
+    StackTrace? stackTrace,
+    Map<String, Object?> ctx = const {},
+  }) {
+    _logger.w(_format(scope, event, ctx), error: error, stackTrace: stackTrace);
+  }
+
+  static void e(
+    String scope,
+    String event, {
+    Object? error,
+    StackTrace? stackTrace,
+    Map<String, Object?> ctx = const {},
+  }) {
+    _logger.e(_format(scope, event, ctx), error: error, stackTrace: stackTrace);
+  }
+
+  static String redactSecret(String secret) {
+    if (secret.isEmpty) return '';
+    if (secret.length <= 10) return '*' * secret.length;
+    return '${secret.substring(0, 6)}...${secret.substring(secret.length - 4)}';
+  }
+
+  static String shortPeer(String peerId) {
+    if (peerId.length <= 12) return peerId;
+    return '${peerId.substring(0, 8)}...${peerId.substring(peerId.length - 4)}';
+  }
+
+  static String _format(String scope, String event, Map<String, Object?> ctx) {
+    if (ctx.isEmpty) {
+      return '[$scope] $event';
+    }
+    final entries = ctx.entries
+        .map((entry) => '${entry.key}=${entry.value}')
+        .join(' ');
+    return '[$scope] $event | $entries';
+  }
+}
+
+class LogScope {
+  LogScope._(this._scope);
+
+  final String _scope;
+
+  void t(String event, {Map<String, Object?> ctx = const {}}) =>
+      AppLogger.t(_scope, event, ctx: ctx);
+
+  void d(String event, {Map<String, Object?> ctx = const {}}) =>
+      AppLogger.d(_scope, event, ctx: ctx);
+
+  void i(String event, {Map<String, Object?> ctx = const {}}) =>
+      AppLogger.i(_scope, event, ctx: ctx);
+
+  void w(
+    String event, {
+    Object? error,
+    StackTrace? stackTrace,
+    Map<String, Object?> ctx = const {},
+  }) =>
+      AppLogger.w(
+        _scope,
+        event,
+        error: error,
+        stackTrace: stackTrace,
+        ctx: ctx,
+      );
+
+  void e(
+    String event, {
+    Object? error,
+    StackTrace? stackTrace,
+    Map<String, Object?> ctx = const {},
+  }) =>
+      AppLogger.e(
+        _scope,
+        event,
+        error: error,
+        stackTrace: stackTrace,
+        ctx: ctx,
+      );
+}
 DART_EOF
 
 # --- core/network/api_response.dart ---
